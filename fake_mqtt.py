@@ -19,7 +19,7 @@ class FakeMqtt:
         }
         self._test_notes = {
             "type": "notes",
-            "note": "Dôležité: Prednáška z fyziky sa dnes presúva na 12:00."
+            "note": "Dôležité: Cviko sa dnes presúva na 12:00."
         }
 
         self.schedule_data = None
