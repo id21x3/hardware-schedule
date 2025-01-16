@@ -10,8 +10,20 @@ class FakeMqtt:
         self.last_message = None
 
         # Тестовые данные (можно расширить)
-        self._test_schedule = {"time": "10:00", "class": "Math"}
-        self._test_notes = {"note": "Lecture delayed by 10 minutes"}
+        self._test_schedule = {
+            "type": "schedule",
+            "lessons": [
+                {"time": "08:00-08:45", "subject": "IOT", "teacher": "Ján Novák", "room": "101"},
+                {"time": "09:00-09:45", "subject": "ISI", "teacher": "Mária Kováčová", "room": "102"},
+                {"time": "10:00-10:45", "subject": "UX", "teacher": "Pavol Horváth", "room": "103"},
+                {"time": "11:00-11:45", "subject": "IOT", "teacher": "Anna Černá", "room": "104"},
+                {"time": "12:00-12:45", "subject": "IOT", "teacher": "Peter Bielik", "room": "105"}
+            ]
+        }
+        self._test_notes = {
+            "type": "notes",
+            "note": "Dôležité: Prednáška z fyziky sa dnes presúva na 12:00."
+        }
 
         self.schedule_data = None
         self.notes_data = None
