@@ -1,0 +1,31 @@
+<!-- templates/index.html -->
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <title>Расписание и заметки</title>
+    <link rel="stylesheet" href="../static/styles.css">
+</head>
+<body>
+    <h1>Расписание</h1>
+    <div>
+        {% if schedule %}
+            <p><strong>Time:</strong> {{ schedule.time }}</p>
+            <p><strong>Class:</strong> {{ schedule.class }}</p>
+        {% else %}
+            <p>Данные о расписании отсутствуют</p>
+        {% endif %}
+    </div>
+
+    <hr/>
+
+    <h1>Заметки</h1>
+    <div>
+        {% if notes %}
+            <p>{{ notes.note }}</p>
+        {% else %}
+            <p>Заметок нет</p>
+        {% endif %}
+    </div>
+</body>
+</html>
