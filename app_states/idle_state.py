@@ -1,12 +1,10 @@
-# app_states/idle_state.py
 
 import logging
 
-
 class IdleState:
-    def __init__(self):
-        self.state_name = "IdleState"
+    def __init__(self, display_manager):
+        self.display_manager = display_manager
 
-    def handle(self):
-        """Ничего не делаем, просто ждём."""
-        logging.debug(f"[{self.state_name}] Ожидание новых сообщений...")
+    def run(self):
+        logging.info("IdleState: Waiting for incoming data...")
+        self.display_manager.show_message("Waiting for data...")

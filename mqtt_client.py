@@ -1,11 +1,11 @@
-# mqtt_client.py
 
 import paho.mqtt.client as mqtt
 import json
 import logging
+import time
 
 class MqttClient:
-    def __init__(self, broker, port, room_id):
+    def __init__(self, broker, port, room_id, reconnect_delay=5):
         self.broker = broker
         self.port = port
         self.room_id = room_id
@@ -13,51 +13,66 @@ class MqttClient:
         self.last_message = None
         self.schedule_data = None
         self.notes_data = None
+        self.reconnect_delay = reconnect_delay
 
-        # Темы для подписки (можно изменить по вкусу)
+        # Topics for subscription
         self.schedule_topic = f"{self.room_id}/schedule"
         self.notes_topic = f"{self.room_id}/notes"
 
+        # Set up MQTT callbacks
+        self.client.on_connect = self.on_connect
+        self.client.on_message = self.on_message
+        self.client.on_disconnect = self.on_disconnect
+
     def on_connect(self, client, userdata, flags, rc):
         if rc == 0:
-            logging.info(f"Подключение к MQTT-брокеру {self.broker}:{self.port} успешно.")
-            # Подписываемся на топики
+            logging.info(f"Connected to MQTT broker {self.broker}:{self.port}.")
+            # Subscribe to topics
             client.subscribe(self.schedule_topic)
             client.subscribe(self.notes_topic)
         else:
-            raise ConnectionError("Ошибка подключения к MQTT-брокеру.")
+            logging.error("Failed to connect to MQTT broker, return code %d", rc)
 
     def on_message(self, client, userdata, msg):
-        """Обработчик входящих сообщений."""
-        payload_str = msg.payload.decode('utf-8')
-        logging.debug(f"Получено сообщение из топика {msg.topic}: {payload_str}")
-        self.last_message = json.loads(payload_str)
+        """Handle incoming messages."""
+        try:
+            payload = json.loads(msg.payload.decode())
+            if msg.topic == self.schedule_topic:
+                self.schedule_data = payload
+                logging.info(f"Schedule updated: {payload}")
+            elif msg.topic == self.notes_topic:
+                self.notes_data = payload
+                logging.info(f"Notes updated: {payload}")
+        except json.JSONDecodeError:
+            logging.error(f"Invalid JSON received on topic {msg.topic}: {msg.payload}")
 
-        # В зависимости от топика обновляем локальные данные
-        if msg.topic == self.schedule_topic:
-            self.schedule_data = self.last_message
-        elif msg.topic == self.notes_topic:
-            self.notes_data = self.last_message
+    def on_disconnect(self, client, userdata, rc):
+        """Handle disconnections."""
+        logging.warning("Disconnected from MQTT broker. Attempting to reconnect...")
+        self.reconnect()
+
+    def reconnect(self):
+        """Attempt to reconnect to the broker."""
+        while True:
+            try:
+                self.client.connect(self.broker, self.port)
+                self.client.loop_start()
+                logging.info("Reconnected to MQTT broker.")
+                break
+            except Exception as e:
+                logging.error(f"Reconnection failed: {e}. Retrying in {self.reconnect_delay} seconds...")
+                time.sleep(self.reconnect_delay)
 
     def connect(self):
-        """Подключается к брокеру и запускает цикл обработки сообщений в фоновом режиме."""
-        self.client.on_connect = self.on_connect
-        self.client.on_message = self.on_message
-        self.client.connect(self.broker, self.port, keepalive=60)
-        self.client.loop_start()
+        """Connect to the broker."""
+        try:
+            self.client.connect(self.broker, self.port)
+            self.client.loop_start()
+        except Exception as e:
+            logging.error(f"Failed to connect to MQTT broker: {e}. Retrying...")
+            self.reconnect()
 
-    def get_message(self):
-        """Возвращает последнее полученное сообщение (и очищает)."""
-        if self.last_message:
-            msg = self.last_message
-            self.last_message = None
-            return msg
-        return None
-
-    def get_schedule_data(self):
-        """Возвращает текущие данные о расписании."""
-        return self.schedule_data
-
-    def get_notes_data(self):
-        """Возвращает текущие данные о заметках."""
-        return self.notes_data
+    def stop(self):
+        """Gracefully stop the client."""
+        self.client.loop_stop()
+        self.client.disconnect()

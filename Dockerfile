@@ -1,17 +1,18 @@
-# Используем базовый образ Python (ARM-совместимый, если нужно для Raspberry Pi)
+
+# Use Python base image
 FROM python:3.9-slim
 
-# Устанавливаем рабочую директорию
+# Set working directory
 WORKDIR /app
 
-# Копируем файлы проекта
+# Copy application files
 COPY . /app
 
-# Устанавливаем зависимости
+# Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Открываем порт Flask
+# Expose Flask port
 EXPOSE 5000
 
-# Команда запуска
+# Start application
 CMD ["python", "main.py"]

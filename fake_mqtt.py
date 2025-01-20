@@ -1,63 +1,53 @@
-# fake_mqtt.py
 
 import json
 import logging
 import time
+import random
 
 class FakeMqtt:
-    def __init__(self, room_id):
+    def __init__(self, room_id, message_delay=5):
         self.room_id = room_id
         self.last_message = None
+        self.message_delay = message_delay
 
-        # Тестовые данные (можно расширить)
-        self._test_schedule = {
-            "type": "schedule",
-            "lessons": [
-                {"time": "08:00-08:45", "subject": "IOT", "teacher": "Ján Novák", "room": "101"},
-                {"time": "09:00-09:45", "subject": "ISI", "teacher": "Mária Kováčová", "room": "102"}
-            ]
-        }
-        self._test_notes = {
-            "type": "notes",
-            "note": "Dôležité: Cviko sa dnes presúva na 12:00."
-        }
+        # Initial test data
+        self._test_schedule = [
+            {"time": "08:00-08:45", "subject": "Math", "teacher": "Dr. Smith", "room": "101"},
+            {"time": "09:00-09:45", "subject": "Physics", "teacher": "Dr. Doe", "room": "102"}
+        ]
+        self._test_notes = [
+            {"note": "Exam tomorrow at 10 AM."},
+            {"note": "Classroom changed to Room 203."}
+        ]
 
         self.schedule_data = None
         self.notes_data = None
 
-        # Флаг для переключения между сообщениями
-        self._switch = True
-
     def connect(self):
-        """Фейковое подключение — всегда успешно."""
-        logging.info("Фейковое подключение к MQTT (заглушка).")
+        """Simulates a successful connection."""
+        logging.info("Fake MQTT: Successfully connected (stub mode).")
+
+    def generate_schedule_message(self):
+        """Generates a random schedule message."""
+        return {
+            "type": "schedule",
+            "lessons": random.sample(self._test_schedule, len(self._test_schedule))
+        }
+
+    def generate_notes_message(self):
+        """Generates a random notes message."""
+        return {
+            "type": "notes",
+            "notes": random.choice(self._test_notes)
+        }
 
     def get_message(self):
-        """Поочерёдно «подбрасывает» сообщения расписания и заметок."""
-        # Каждые 2 вызова функции выдаём разные сообщения
-        time.sleep(1)  # Искусственная задержка для наглядности
-
-        if self._switch:
-            # Эмулируем получение расписания
-            message = {
-                "type": "schedule",
-                **self._test_schedule
-            }
-            self.schedule_data = message
-        else:
-            # Эмулируем получение заметки
-            message = {
-                "type": "notes",
-                **self._test_notes
-            }
-            self.notes_data = message
-
-        self._switch = not self._switch
-        self.last_message = message
-        return message
-
-    def get_schedule_data(self):
-        return self.schedule_data
-
-    def get_notes_data(self):
-        return self.notes_data
+        """Simulates receiving messages alternately for schedule and notes."""
+        while True:
+            if random.choice([True, False]):
+                self.schedule_data = self.generate_schedule_message()
+                logging.info(f"Fake MQTT: Generated schedule message: {self.schedule_data}")
+            else:
+                self.notes_data = self.generate_notes_message()
+                logging.info(f"Fake MQTT: Generated notes message: {self.notes_data}")
+            time.sleep(self.message_delay)
