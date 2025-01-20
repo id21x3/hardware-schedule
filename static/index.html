@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Schedule Display</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <header class="App-header">
+        <h1>L9-B524</h1>
+    </header>
+    <div class="calendar" id="calendar"></div>
+
+    <script>
+        const daysOfWeek = [
+            "Pondelok", "Utorok", "Streda", "Štvrtok", "Piatok", "Sobota", "Nedeľa"
+        ];
+
+        // Fetch schedule data dynamically
+        async function fetchSchedule() {
+            try {
+                const response = await fetch('/api/schedule'); // Flask API endpoint
+                const data = await response.json();
+                renderCalendar(data);
+            } catch (error) {
+                console.error("Error fetching schedule:", error);
+            }
+        }
+
+        function renderCalendar(weekSchedule) {
+            const calendarDiv = document.getElementById("calendar");
+            calendarDiv.innerHTML = "";
+
+            const currentDate = new Date();
+            const currentDayIndex = currentDate.getDay() - 1;
+
+            daysOfWeek.forEach((day, index) => {
+                const dayDiv = document.createElement("div");
+                dayDiv.className = `day ${index === currentDayIndex ? "current-day" : ""}`;
+
+                const dayHeader = document.createElement("h2");
+                dayHeader.textContent = day;
+                dayDiv.appendChild(dayHeader);
+
+                if (weekSchedule[index] && weekSchedule[index].length > 0) {
+                    const lessonList = document.createElement("ul");
+                    weekSchedule[index].forEach(lesson => {
+                        const lessonItem = document.createElement("li");
+                        lessonItem.className = "lesson";
+
+                        const lessonDetails = document.createElement("div");
+                        lessonDetails.className = "lesson-details";
+
+                        const timeDiv = document.createElement("div");
+                        timeDiv.className = "lesson-time";
+                        timeDiv.textContent = lesson.time;
+
+                        const nameDiv = document.createElement("div");
+                        nameDiv.className = "lesson-name";
+                        nameDiv.textContent = lesson.lesson;
+
+                        lessonDetails.appendChild(timeDiv);
+                        lessonDetails.appendChild(nameDiv);
+                        lessonItem.appendChild(lessonDetails);
+
+                        const teacherDiv = document.createElement("div");
+                        teacherDiv.className = "lesson-teacher";
+                        teacherDiv.textContent = lesson.teacher;
+                        lessonItem.appendChild(teacherDiv);
+
+                        if (lesson.note) {
+                            const noteDiv = document.createElement("div");
+                            noteDiv.className = "note";
+                            noteDiv.innerHTML = `<img src="static/icons/bulb.png" alt="Note" class="note-icon" /> <span>${lesson.note}</span>`;
+                            lessonItem.appendChild(noteDiv);
+                        }
+
+                        lessonList.appendChild(lessonItem);
+                    });
+                    dayDiv.appendChild(lessonList);
+                } else {
+                    const noLessons = document.createElement("p");
+                    noLessons.textContent = "Víkend";
+                    dayDiv.appendChild(noLessons);
+                }
+
+                calendarDiv.appendChild(dayDiv);
+            });
+        }
+
+        // Initial fetch and periodic updates
+        fetchSchedule();
+        setInterval(fetchSchedule, 60000); // Update every 60 seconds
+    </script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+{
+    "device_id": "unique_device_id_123",
+    "mqtt_broker": "mqtt.example.com",
+    "mqtt_port": 1883,
+    "mqtt_username": "user",
+    "mqtt_password": "password",
+    "log_level": "DEBUG"
+}

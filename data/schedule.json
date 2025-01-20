@@ -1,0 +1,50 @@
+[
+  [
+    {
+      "time": "07:30 - 09:00",
+      "lesson": "Internet vecí a chytré zariadenia",
+      "teacher": "Ing. Miroslav Biňas, PhD."
+    }
+  ],
+  [
+    {
+      "time": "09:10 - 10:40",
+      "lesson": "Internet vecí a chytré zariadenia",
+      "teacher": "Ing. Miroslav Biňas, PhD."
+    }
+  ],
+  [
+    {
+      "time": "07:30 - 09:00",
+      "lesson": "Internet vecí a chytré zariadenia",
+      "teacher": "Ing. Miroslav Biňas, PhD."
+    },
+    {
+      "time": "09:10 - 10:40",
+      "lesson": "Internet vecí a chytré zariadenia",
+      "teacher": "Ing. Miroslav Biňas, PhD."
+    },
+    {
+      "time": "10:50 - 12:20",
+      "lesson": "Internet vecí a chytré zariadenia",
+      "teacher": "Ing. Miroslav Biňas, PhD.",
+      "note": "Cvičenie bude online, odkaz nájdete na webovej stránke IOT"
+    }
+  ],
+  [
+    {
+      "time": "13:30 - 15:00",
+      "lesson": "Internet vecí a chytré zariadenia",
+      "teacher": "Ing. Miroslav Biňas, PhD."
+    }
+  ],
+  [
+    {
+      "time": "9:10 - 10:40",
+      "lesson": "Internet vecí a chytré zariadenia",
+      "teacher": "Ing. Miroslav Biňas, PhD."
+    }
+  ],
+  [],
+  []
+]
