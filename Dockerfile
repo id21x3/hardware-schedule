@@ -1,16 +1,16 @@
-FROM python:3.9-slim
+# Используем базовый образ Python
+FROM python:3.10-slim
 
 # Устанавливаем рабочую директорию
 WORKDIR /app
 
+# Копируем файлы приложения
+COPY . /app
+
 # Устанавливаем зависимости
-COPY requirements.txt requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Копируем все файлы проекта
-COPY . .
-
-# Устанавливаем порт, на котором будет работать приложение
+# Открываем порт Flask-приложения
 EXPOSE 5000
 
 # Запускаем приложение

@@ -1,197 +1,285 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Schedule Display</title>
-    <style>
-        html, body {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            background-color: #1c1c1c;
-            color: #ff69b4;
-            font-family: Arial, sans-serif;
-        }
-        .App-header {
-            padding: 20px;
-            font-size: 1.5rem;
-            color: #ff69b4;
-            background: #2a2a2a;
-            text-align: left;
-        }
-        .calendar {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            grid-template-rows: repeat(2, 1fr);
-            gap: 20px;
-            padding: 20px;
-            box-sizing: border-box;
-        }
-        .day {
-            background: #2a2a2a;
-            border-radius: 10px;
-            padding: 15px;
-            text-align: left;
-            overflow: hidden;
-            font-size: 1rem;
-        }
-        .day h2 {
-            margin-bottom: 20px;
-            font-size: 1.4rem;
-        }
-        .day ul {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-        .day ul li {
-            margin-bottom: 12px;
-            padding: 10px;
-            background-color: rgba(95, 85, 90, 0.2);
-            border-radius: 5px;
-        }
-        .lesson-details {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 5px;
-        }
-        .lesson-time {
-            font-weight: bold;
-        }
-        .lesson-name {
-            font-weight: bold;
-            color: #e4c8d6;
-        }
-        .lesson-teacher {
-            font-size: 0.9rem;
-            margin-top: 5px;
-            color: #ff69b4;
-        }
-        .note {
-            display: flex;
-            align-items: center;
-            background-color: rgba(174, 75, 125, 0.2);
-            border-radius: 5px;
-            padding: 5px;
-            font-size: 0.9rem;
-            margin-top: 5px;
-        }
-        .note-icon {
-            width: 32px;
-            height: 32px;
-            margin-right: 5px;
-        }
-        .current-day {
-            background: #ff69b4;
-            color: #1c1c1c;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Schedule Display</title>
+  <!-- Подключаем ваши стили -->
+  <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
+  <div class="App-container">
     <header class="App-header">
-        <h1>L9-B524</h1>
+      <h1>L9-B524</h1>
+      <!-- Кнопки управления; по умолчанию покажем только кнопку "Показать всё",
+           в процессе рендеринга динамически будем менять/прятать/показывать другие -->
+      <button id="controlButton" class="schedule-button">
+        (Управление расписанием)
+      </button>
+      <button id="backButton" class="schedule-button" style="display: none;">
+        Späť na rozvrh
+      </button>
     </header>
-    <div class="calendar" id="calendar"></div>
 
-    <script>
-        const daysOfWeek = [
-            "Pondelok", "Utorok", "Streda", "Štvrtok", "Piatok", "Sobota", "Nedeľa"
-        ];
+    <!-- Контейнер, в который будем динамически рендерить расписание -->
+    <div id="calendar" class="calendar"></div>
+  </div>
 
-        const weekSchedule = [
-            [
-                { time: "07:30 - 09:00", lesson: "Internet vecí a chytré zariadenia", teacher: "Ing. Miroslav Biňas, PhD." },
-                { time: "09:10 - 10:40", lesson: "Iný predmet #1", teacher: "Ing. X Y" },
-                { time: "10:50 - 12:20", lesson: "Iný predmet #2", teacher: "Ing. Z Q" },
-            ],
-            [
-                { time: "09:10 - 10:40", lesson: "IoT 2", teacher: "Ing. Miroslav Biňas, PhD." },
-                { time: "10:50 - 12:20", lesson: "Sieťové technológie", teacher: "Ing. XYZ" },
-            ],
-            [
-                { time: "07:30 - 09:00", lesson: "IoT 3", teacher: "Ing. Miroslav Biňas, PhD." },
-                { time: "09:10 - 10:40", lesson: "IoT 3 cvičenie", teacher: "Ing. Miroslav Biňas, PhD." },
-                { 
-                    time: "10:50 - 12:20", 
-                    lesson: "Internet vecí a chytré zariadenia", 
-                    teacher: "Ing. Miroslav Biňas, PhD.",
-                    note: "Cvičenie online, link je na webe",
-                },
-                { time: "13:30 - 15:00", lesson: "Iný predmet #3", teacher: "Doc. AAA BBB" },
-            ],
-            [
-                { time: "13:30 - 15:00", lesson: "Internet vecí a chytré zariadenia", teacher: "Ing. Miroslav Biňas, PhD." },
-            ],
-            [
-                { time: "9:10 - 10:40", lesson: "Iný predmet #4", teacher: "Ing. CCC DDD" },
-            ],
-            [],
-        ];
+  <script>
+    // ----- ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ СОСТОЯНИЯ -----
+    let view = "today";       // "today" | "full" | "detail"
+    let selectedDay = null;   // индекс выбранного дня в режиме detail
+    let timerId = null;       // для сброса таймеров при переключениях
 
-        function renderCalendar() {
-            const calendarDiv = document.getElementById("calendar");
-            calendarDiv.innerHTML = "";
+    // ----- ДНИ НЕДЕЛИ -----
+    const daysOfWeek = [
+      "Pondelok",
+      "Utorok",
+      "Streda",
+      "Štvrtok",
+      "Piatok",
+      "Sobota",
+      "Nedeľa"
+    ];
 
-            const currentDate = new Date();
-            const currentDayIndex = currentDate.getDay() - 1; // Monday as index 0
+    // Определяем "сегодня" (индекс понедельника = 0)
+    // В JS getDay() даёт: воскресенье=0, понедельник=1, ..., суббота=6
+    // Для синхронизации с нашим массивом: "понедельник" => 0
+    // значит currentDayIndex = getDay() - 1. Если воскресенье => -1 (придётся обработать).
+    let currentDayIndex = new Date().getDay() - 1;
+    if (currentDayIndex === -1) {
+      currentDayIndex = 6; // воскресенье (Nedeľa)
+    }
 
-            daysOfWeek.forEach((day, index) => {
-                const dayDiv = document.createElement("div");
-                dayDiv.className = `day ${index === currentDayIndex ? "current-day" : ""}`;
+    // ----- ФУНКЦИИ РАБОТЫ С ТАЙМЕРОМ -----
+    function clearExistingTimer() {
+      if (timerId) {
+        clearTimeout(timerId);
+        timerId = null;
+      }
+    }
 
-                const dayHeader = document.createElement("h2");
-                dayHeader.textContent = day;
-                dayDiv.appendChild(dayHeader);
+    function setView(newView) {
+      // Очистка предыдущего таймера
+      clearExistingTimer();
 
-                if (weekSchedule[index] && weekSchedule[index].length > 0) {
-                    const lessonList = document.createElement("ul");
-                    weekSchedule[index].forEach(lesson => {
-                        const lessonItem = document.createElement("li");
-                        lessonItem.className = "lesson";
+      view = newView;
+      // Устанавливаем таймеры в зависимости от режима
+      if (view === "full") {
+        // через 15 секунд вернёмся в "today"
+        timerId = setTimeout(() => {
+          setView("today");
+          renderCalendar();
+        }, 15000);
+      } else if (view === "detail") {
+        // через 20 секунд вернёмся в "today"
+        timerId = setTimeout(() => {
+          selectedDay = null;
+          setView("today");
+          renderCalendar();
+        }, 20000);
+      }
+      renderCalendar();
+    }
 
-                        const lessonDetails = document.createElement("div");
-                        lessonDetails.className = "lesson-details";
-
-                        const timeDiv = document.createElement("div");
-                        timeDiv.className = "lesson-time";
-                        timeDiv.textContent = lesson.time;
-
-                        const nameDiv = document.createElement("div");
-                        nameDiv.className = "lesson-name";
-                        nameDiv.textContent = lesson.lesson;
-
-                        lessonDetails.appendChild(timeDiv);
-                        lessonDetails.appendChild(nameDiv);
-                        lessonItem.appendChild(lessonDetails);
-
-                        const teacherDiv = document.createElement("div");
-                        teacherDiv.className = "lesson-teacher";
-                        teacherDiv.textContent = lesson.teacher;
-                        lessonItem.appendChild(teacherDiv);
-
-                        if (lesson.note) {
-                            const noteDiv = document.createElement("div");
-                            noteDiv.className = "note";
-                            noteDiv.innerHTML = `<img src="/static/icons/bulb.png" alt="Note" class="note-icon" /> <span>${lesson.note}</span>`;
-                            lessonItem.appendChild(noteDiv);
-                        }
-
-                        lessonList.appendChild(lessonItem);
-                    });
-                    dayDiv.appendChild(lessonList);
-                } else {
-                    const noLessons = document.createElement("p");
-                    noLessons.textContent = "Víkend";
-                    dayDiv.appendChild(noLessons);
-                }
-
-                calendarDiv.appendChild(dayDiv);
-            });
+    // ----- ПОЛУЧЕНИЕ ДАННЫХ С СЕРВЕРА -----
+    let weekSchedule = []; // сюда положим данные после fetch
+    async function fetchSchedule() {
+      try {
+        console.log("Fetching schedule...");
+        const response = await fetch('/api/schedule');
+        if (!response.ok) {
+          throw new Error(`HTTP Error: ${response.status}`);
         }
-
+        const data = await response.json();
+        weekSchedule = data; // Запоминаем в глобальной переменной
+        console.log("Schedule updated successfully.");
+        // После получения данных - отрисовываем
         renderCalendar();
-    </script>
+      } catch (error) {
+        console.error("Failed to fetch schedule:", error);
+        displayError("Unable to fetch schedule. Please try again later.");
+      }
+    }
+
+    // ----- ОТОБРАЖЕНИЕ ОШИБКИ -----
+    function displayError(message) {
+      const calendarDiv = document.getElementById("calendar");
+      calendarDiv.innerHTML = `<p class="error-message">${message}</p>`;
+    }
+
+    // ----- РЕНДЕР ОТДЕЛЬНОГО ДНЯ -----
+    // isToday: нужно ли выделять день (розовый фон)
+    // isPartial: обрезаем ли список занятий (true - показываем только часть)
+    // clickable: если true, то при клике по дню можно открыть detail
+    function renderDay(dayIndex, isToday, isPartial, clickable) {
+      const dayName = daysOfWeek[dayIndex] || "Neznámy deň";
+      const daySchedule = weekSchedule[dayIndex] || [];
+
+      // Если режим "частичный", показываем не все занятия, а, например, 2
+      const PARTIAL_COUNT = 2;
+      const displayedSchedule = isPartial
+        ? daySchedule.slice(0, PARTIAL_COUNT)
+        : daySchedule;
+
+      // Создаём dayDiv
+      const dayDiv = document.createElement("div");
+      dayDiv.className = "day" + (isToday ? " current-day" : "");
+      if (clickable) {
+        dayDiv.style.cursor = "pointer";
+      }
+
+      // Обработчик клика по дню (если нужно)
+      if (clickable) {
+        dayDiv.addEventListener("click", () => {
+          selectedDay = dayIndex;
+          setView("detail");
+        });
+      }
+
+      // Заголовок дня
+      const dayHeader = document.createElement("h2");
+      dayHeader.textContent = dayName;
+      dayDiv.appendChild(dayHeader);
+
+      // Проверяем, есть ли занятия
+      if (displayedSchedule.length > 0) {
+        const lessonList = document.createElement("ul");
+        displayedSchedule.forEach((lesson) => {
+          const lessonItem = document.createElement("li");
+          lessonItem.className = "lesson";
+
+          const lessonDetails = document.createElement("div");
+          lessonDetails.className = "lesson-details";
+
+          const timeDiv = document.createElement("div");
+          timeDiv.className = "lesson-time";
+          timeDiv.textContent = lesson.time;
+
+          const nameDiv = document.createElement("div");
+          nameDiv.className = "lesson-name";
+          nameDiv.textContent = lesson.lesson;
+
+          lessonDetails.appendChild(timeDiv);
+          lessonDetails.appendChild(nameDiv);
+          lessonItem.appendChild(lessonDetails);
+
+          const teacherDiv = document.createElement("div");
+          teacherDiv.className = "lesson-teacher";
+          teacherDiv.textContent = lesson.teacher || "";
+          lessonItem.appendChild(teacherDiv);
+
+          if (lesson.note) {
+            const noteDiv = document.createElement("div");
+            noteDiv.className = "note";
+            noteDiv.innerHTML = `
+              <img src="/static/icons/bulb.png" alt="Note" class="note-icon" />
+              <span>${lesson.note}</span>
+            `;
+            lessonItem.appendChild(noteDiv);
+          }
+          lessonList.appendChild(lessonItem);
+        });
+        dayDiv.appendChild(lessonList);
+
+        // Если есть ещё занятия, но мы их не показали (isPartial)
+        if (daySchedule.length > displayedSchedule.length) {
+          const partialInfo = document.createElement("div");
+          partialInfo.style.marginTop = "10px";
+          partialInfo.style.fontSize = "0.9rem";
+          partialInfo.style.opacity = 0.7;
+          partialInfo.textContent = "(nie je celé)";
+          dayDiv.appendChild(partialInfo);
+        }
+      } else {
+        // Если нет занятий – выводим "Víkend"
+        const noLessons = document.createElement("p");
+        noLessons.textContent = "Víkend";
+        dayDiv.appendChild(noLessons);
+      }
+
+      return dayDiv;
+    }
+
+    // ----- ОСНОВНАЯ ФУНКЦИЯ РЕНДЕРА (учитывает состояние view / selectedDay) -----
+    function renderCalendar() {
+      const calendarDiv = document.getElementById("calendar");
+      const controlButton = document.getElementById("controlButton");
+      const backButton = document.getElementById("backButton");
+      calendarDiv.innerHTML = ""; // Очистим контент
+
+      // Скрываем все кнопки перед настройкой
+      controlButton.style.display = "none";
+      backButton.style.display = "none";
+
+      if (view === "detail" && selectedDay != null) {
+        // ----- Режим detail: показываем один выбранный день полностью -----
+        // (isPartial = false, isToday проверяем, но может быть любое)
+        const isToday = (selectedDay === currentDayIndex);
+
+        // Кнопка "Späť na rozvrh" (возвращаемся в full)
+        backButton.style.display = "inline-block";
+        backButton.textContent = "Späť na rozvrh";
+        backButton.onclick = () => {
+          // Возврат в "full"
+          selectedDay = null;
+          setView("full");
+        };
+
+        // Рендерим только один день
+        const dayBlock = renderDay(selectedDay, isToday, false, false);
+        // Чтобы внешний вид "single-day" был как в React, можно добавить доп.класс:
+        calendarDiv.classList.add("single-day");
+        calendarDiv.appendChild(dayBlock);
+      }
+      else if (view === "full") {
+        // ----- Режим full: показываем все дни, НО частично (isPartial = true) -----
+        // + кнопка вернуться на "today"
+        controlButton.style.display = "inline-block";
+        controlButton.textContent = "Vrátiť sa na dnešok";
+        controlButton.onclick = () => {
+          setView("today");
+        };
+
+        // Убедимся, что нет класса single-day
+        calendarDiv.classList.remove("single-day");
+
+        // Рендерим все дни
+        daysOfWeek.forEach((_, index) => {
+          const isToday = (index === currentDayIndex);
+          // clickable = true, чтобы перейти в detail
+          const dayBlock = renderDay(index, isToday, true, true);
+          calendarDiv.appendChild(dayBlock);
+        });
+      }
+      else {
+        // ----- По умолчанию: режим today -----
+        // Показываем занятия только для текущего дня полностью (isPartial = false),
+        // причём по задаче – он не подсвечивается ("isToday = false"),
+        // но если хотите оставить выделение, можно поставить isToday=true.
+        const isToday = false;
+
+        // Кнопка "Ukázať celé (15s)"
+        controlButton.style.display = "inline-block";
+        controlButton.textContent = "Ukázať celé (15s)";
+        controlButton.onclick = () => {
+          // Переходим в режим full
+          setView("full");
+        };
+
+        // Убедимся, что нет класса single-day перед перерисовкой
+        calendarDiv.classList.remove("single-day");
+        calendarDiv.classList.add("single-day"); // а потом добавим, как в React
+        const dayBlock = renderDay(currentDayIndex, isToday, false, false);
+        calendarDiv.appendChild(dayBlock);
+      }
+    }
+
+    // ----- СТАРТ ПРИ ЗАГРУЗКЕ СТРАНИЦЫ -----
+    // 1) Загружаем расписание
+    fetchSchedule();
+    // 2) Обновляем каждые 6 секунд (как было в исходном ТЗ)
+    setInterval(fetchSchedule, 6000);
+  </script>
 </body>
 </html>

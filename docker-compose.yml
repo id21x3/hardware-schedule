@@ -1,0 +1,11 @@
+version: "3.9"
+services:
+  hardware:
+    build: .
+    container_name: hardware_app
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - FLASK_ENV=production
