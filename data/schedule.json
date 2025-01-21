@@ -1,0 +1,56 @@
+[
+    [
+        {
+            "time": "07:30 - 09:00",
+            "lesson": "Internet vecí a chytré zariadenia",
+            "teacher": "Miroslav Biňas",
+            "note": "I am super puper note!!"
+        }
+    ],
+    [
+        {
+            "time": "09:10 - 10:40",
+            "lesson": "Internet vecí a chytré zariadenia",
+            "teacher": "Miroslav Biňas",
+            "note": null
+        }
+    ],
+    [
+        {
+            "time": "07:30 - 09:00",
+            "lesson": "Internet vecí a chytré zariadenia",
+            "teacher": "Miroslav Biňas",
+            "note": null
+        },
+        {
+            "time": "09:10 - 10:40",
+            "lesson": "Internet vecí a chytré zariadenia",
+            "teacher": "Miroslav Biňas",
+            "note": null
+        },
+        {
+            "time": "10:50 - 12:20",
+            "lesson": "Internet vecí a chytré zariadenia",
+            "teacher": "Miroslav Biňas",
+            "note": "Cvičenie bude online, odkaz nájdete na webovej stránke IOT"
+        }
+    ],
+    [
+        {
+            "time": "13:30 - 15:00",
+            "lesson": "Internet vecí a chytré zariadenia",
+            "teacher": "Miroslav Biňas",
+            "note": null
+        }
+    ],
+    [
+        {
+            "time": "09:10 - 10:40",
+            "lesson": "Internet vecí a chytré zariadenia",
+            "teacher": "Miroslav Biňas",
+            "note": null
+        }
+    ],
+    [],
+    []
+]
