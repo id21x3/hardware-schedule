@@ -13,27 +13,51 @@
     <div class="calendar" id="calendar"></div>
 
     <script>
+        // Массив дней недели
         const daysOfWeek = [
             "Pondelok", "Utorok", "Streda", "Štvrtok", "Piatok", "Sobota", "Nedeľa"
         ];
 
-        // Fetch schedule data dynamically
+        /**
+         * Функция для получения расписания с сервера.
+         */
         async function fetchSchedule() {
             try {
-                const response = await fetch('/api/schedule'); // Flask API endpoint
+                console.log("Fetching schedule...");
+                const response = await fetch('/api/schedule');
+
+                if (!response.ok) {
+                    throw new Error(`HTTP Error: ${response.status}`);
+                }
+
                 const data = await response.json();
                 renderCalendar(data);
+                console.log("Schedule updated successfully.");
             } catch (error) {
-                console.error("Error fetching schedule:", error);
+                console.error("Failed to fetch schedule:", error);
+                displayError("Unable to fetch schedule. Please try again later.");
             }
         }
 
+        /**
+         * Функция для отображения ошибки на экране.
+         * @param {string} message - Сообщение об ошибке.
+         */
+        function displayError(message) {
+            const calendarDiv = document.getElementById("calendar");
+            calendarDiv.innerHTML = `<p class="error-message">${message}</p>`;
+        }
+
+        /**
+         * Функция для рендеринга расписания на экране.
+         * @param {Array} weekSchedule - Данные расписания по дням недели.
+         */
         function renderCalendar(weekSchedule) {
             const calendarDiv = document.getElementById("calendar");
-            calendarDiv.innerHTML = "";
+            calendarDiv.innerHTML = ""; // Очищаем текущий контент
 
             const currentDate = new Date();
-            const currentDayIndex = currentDate.getDay() - 1;
+            const currentDayIndex = currentDate.getDay() - 1; // Индексация с 0 (понедельник)
 
             daysOfWeek.forEach((day, index) => {
                 const dayDiv = document.createElement("div");
@@ -72,7 +96,7 @@
                         if (lesson.note) {
                             const noteDiv = document.createElement("div");
                             noteDiv.className = "note";
-                            noteDiv.innerHTML = `<img src="static/icons/bulb.png" alt="Note" class="note-icon" /> <span>${lesson.note}</span>`;
+                            noteDiv.innerHTML = `<img src="/static/icons/bulb.png" alt="Note" class="note-icon" /> <span>${lesson.note}</span>`;
                             lessonItem.appendChild(noteDiv);
                         }
 
@@ -89,9 +113,9 @@
             });
         }
 
-        // Initial fetch and periodic updates
-        fetchSchedule();
-        setInterval(fetchSchedule, 60000); // Update every 60 seconds
+        // Начальное обновление расписания и настройка интервала
+        fetchSchedule(); // Первичный вызов
+        setInterval(fetchSchedule, 6000); // Повтор каждые 6 секунд
     </script>
 </body>
 </html>

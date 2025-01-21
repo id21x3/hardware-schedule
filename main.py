@@ -1,4 +1,8 @@
-from app_state import InitState
+import threading
+import signal
+import sys
+from flask_state import FlaskState
+from mqtt_state import MQTTState
 from config_loader import ConfigLoader
 
 DEVICE_CONFIG_PATH = "config/device_config.json"
@@ -6,29 +10,35 @@ DEVICE_CONFIG_PATH = "config/device_config.json"
 class Application:
     def __init__(self, config_path):
         self.config_path = config_path
-        self.state = None
-        self.config = None
+        self.config = ConfigLoader.load_config(self.config_path)
+        self.stop_event = threading.Event()
 
-    def initialize(self):
-        try:
-            self.config = ConfigLoader.load_config(self.config_path)
-            print(f"Configuration loaded: {self.config}")
-            self.state = InitState(self)
-        except Exception as e:
-            print(f"Error during initialization: {e}")
+    def run_flask(self):
+        flask_state = FlaskState()
+        flask_state.execute()
+
+    def run_mqtt(self):
+        mqtt_state = MQTTState(self)
+        mqtt_state.stop_event = self.stop_event  # Передаём общий stop_event
+        mqtt_state.execute()
+
+    def stop(self):
+        print("\nStopping application...")
+        self.stop_event.set()  # Устанавливаем флаг остановки
+        sys.exit(0)  # Завершаем программу
 
     def run(self):
-        if not self.state:
-            print("Application state is not initialized. Exiting.")
-            return
+        flask_thread = threading.Thread(target=self.run_flask, daemon=True)
+        mqtt_thread = threading.Thread(target=self.run_mqtt, daemon=True)
 
-        while True:
-            try:
-                self.state.execute()
-            except Exception as e:
-                print(f"Error during execution: {e}")
+        flask_thread.start()
+        mqtt_thread.start()
+
+        signal.signal(signal.SIGINT, lambda sig, frame: self.stop())  # Обрабатываем Ctrl+C
+
+        flask_thread.join()
+        mqtt_thread.join()
 
 if __name__ == "__main__":
     app = Application(DEVICE_CONFIG_PATH)
-    app.initialize()
     app.run()

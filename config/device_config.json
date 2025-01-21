@@ -1,8 +1,8 @@
 {
-    "device_id": "unique_device_id_123",
-    "mqtt_broker": "mqtt.example.com",
+    "device_id": "id21x3rasbery-monitor",
+    "mqtt_broker": "147.232.205.176",
     "mqtt_port": 1883,
-    "mqtt_username": "user",
-    "mqtt_password": "password",
+    "mqtt_username": "maker",
+    "mqtt_password": "mother.mqtt.password",
     "log_level": "DEBUG"
 }

@@ -26,8 +26,11 @@ class MQTTService:
 
     def start(self):
         try:
-            self.client.loop_start()
-            print("MQTT client loop started.")
+            if not self.client.is_connected():  # Проверяем, подключен ли клиент
+                self.client.loop_start()
+                print("MQTT client loop started.")
+            else:
+                print("MQTT client is already running.")
         except Exception as e:
             print(f"Error starting MQTT loop: {e}")
 

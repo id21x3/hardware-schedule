@@ -1,4 +1,3 @@
-# app_state.py
 class AbstractState:
     def __init__(self, app):
         self.app = app
@@ -10,4 +9,5 @@ class InitState(AbstractState):
     def execute(self):
         print("Initialization state executed.")
         from mqtt_state import MQTTState
+        print("Switching to MQTTState.")
         self.app.state = MQTTState(self.app)
