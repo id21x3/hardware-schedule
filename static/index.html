@@ -11,8 +11,7 @@
   <div class="App-container">
     <header class="App-header">
       <h1>L9-B524</h1>
-      <!-- Кнопки управления; по умолчанию покажем только кнопку "Показать всё",
-           в процессе рендеринга динамически будем менять/прятать/показывать другие -->
+      <!-- Кнопки управления расписанием -->
       <button id="controlButton" class="schedule-button">
         (Управление расписанием)
       </button>
@@ -21,37 +20,43 @@
       </button>
     </header>
 
-    <!-- Контейнер, в который будем динамически рендерить расписание -->
+    <!-- Контейнер, в который динамически рендерим расписание -->
     <div id="calendar" class="calendar"></div>
   </div>
 
   <script>
-    // ----- ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ СОСТОЯНИЯ -----
-    let view = "today";       // "today" | "full" | "detail"
-    let selectedDay = null;   // индекс выбранного дня в режиме detail
-    let timerId = null;       // для сброса таймеров при переключениях
+    // ======= ГЛОБАЛЬНОЕ «СОСТОЯНИЕ» =======
+    let view = "today";        // "today" | "full" | "detail"
+    let selectedDay = null;    // индекс выбранного дня (для detail)
+    let timerId = null;        // для сброса таймеров
 
-    // ----- ДНИ НЕДЕЛИ -----
+    // ======= ДНИ НЕДЕЛИ (без воскресенья!) =======
+    // Index: 0=Пн, 1=Вт, 2=Ср, 3=Чт, 4=Пт, 5=Сб
     const daysOfWeek = [
-      "Pondelok",
-      "Utorok",
-      "Streda",
-      "Štvrtok",
-      "Piatok",
-      "Sobota",
-      "Nedeľa"
+      "Pondelok",  // 0
+      "Utorok",    // 1
+      "Streda",    // 2
+      "Štvrtok",   // 3
+      "Piatok",    // 4
+      "Sobota"     // 5
     ];
 
-    // Определяем "сегодня" (индекс понедельника = 0)
-    // В JS getDay() даёт: воскресенье=0, понедельник=1, ..., суббота=6
-    // Для синхронизации с нашим массивом: "понедельник" => 0
-    // значит currentDayIndex = getDay() - 1. Если воскресенье => -1 (придётся обработать).
-    let currentDayIndex = new Date().getDay() - 1;
-    if (currentDayIndex === -1) {
-      currentDayIndex = 6; // воскресенье (Nedeľa)
-    }
+    // ======= ОПРЕДЕЛЯЕМ "ТЕКУЩИЙ ДЕНЬ" (если воскресенье => показываем понедельник) =======
+    // getDay(): Вс => 0, Пн => 1, ..., Сб => 6
+    // Раньше мы делали -1, чтобы Пн был 0, но теперь Sunday мы пропускаем.
+    const jsDay = new Date().getDay(); // 0..6
+    let currentDayIndex = (jsDay === 0)
+      ? 0              // если сегодня воскресенье, показываем понедельник
+      : (jsDay - 1);   // иначе всё как раньше (Пн=0, Вт=1, ... Сб=5)
 
-    // ----- ФУНКЦИИ РАБОТЫ С ТАЙМЕРОМ -----
+    // На всякий случай, если каким-то образом вышло за диапазон (хотя не должно):
+    if (currentDayIndex < 0) currentDayIndex = 0;
+    if (currentDayIndex > 5) currentDayIndex = 5;
+
+    // ======= ДАННЫЕ РАСПИСАНИЯ (из fetch) =======
+    let weekSchedule = []; // weekSchedule[0..5], воскресенья нет
+
+    // ======= ТАЙМЕРЫ ПЕРЕКЛЮЧЕНИЙ =======
     function clearExistingTimer() {
       if (timerId) {
         clearTimeout(timerId);
@@ -59,31 +64,31 @@
       }
     }
 
+    // Смена view + выставление соответствующего таймера
     function setView(newView) {
-      // Очистка предыдущего таймера
       clearExistingTimer();
-
       view = newView;
-      // Устанавливаем таймеры в зависимости от режима
+
       if (view === "full") {
-        // через 15 секунд вернёмся в "today"
+        // Режим full: автоматически на "today" через 15с
         timerId = setTimeout(() => {
           setView("today");
           renderCalendar();
         }, 15000);
       } else if (view === "detail") {
-        // через 20 секунд вернёмся в "today"
+        // Режим detail: автоматически на "today" через 20с
         timerId = setTimeout(() => {
           selectedDay = null;
           setView("today");
           renderCalendar();
         }, 20000);
       }
+      // Режим today: никаких таймеров
+
       renderCalendar();
     }
 
-    // ----- ПОЛУЧЕНИЕ ДАННЫХ С СЕРВЕРА -----
-    let weekSchedule = []; // сюда положим данные после fetch
+    // ======= ПОЛУЧЕНИЕ РАСПИСАНИЯ С СЕРВЕРА =======
     async function fetchSchedule() {
       try {
         console.log("Fetching schedule...");
@@ -92,9 +97,9 @@
           throw new Error(`HTTP Error: ${response.status}`);
         }
         const data = await response.json();
-        weekSchedule = data; // Запоминаем в глобальной переменной
+        weekSchedule = data; // ожидаем массив из 6 дней (Пн..Сб)
         console.log("Schedule updated successfully.");
-        // После получения данных - отрисовываем
+        // Перерисовываем
         renderCalendar();
       } catch (error) {
         console.error("Failed to fetch schedule:", error);
@@ -102,22 +107,21 @@
       }
     }
 
-    // ----- ОТОБРАЖЕНИЕ ОШИБКИ -----
+    // ======= ОТОБРАЖЕНИЕ ОШИБКИ =======
     function displayError(message) {
       const calendarDiv = document.getElementById("calendar");
       calendarDiv.innerHTML = `<p class="error-message">${message}</p>`;
     }
 
-    // ----- РЕНДЕР ОТДЕЛЬНОГО ДНЯ -----
-    // isToday: нужно ли выделять день (розовый фон)
-    // isPartial: обрезаем ли список занятий (true - показываем только часть)
-    // clickable: если true, то при клике по дню можно открыть detail
+    // ======= РЕНДЕР ОДНОГО ДНЯ =======
+    // isToday => подсветка
+    // isPartial => обрезать ли список занятий
+    // clickable => клик по дню открывает detail
     function renderDay(dayIndex, isToday, isPartial, clickable) {
       const dayName = daysOfWeek[dayIndex] || "Neznámy deň";
       const daySchedule = weekSchedule[dayIndex] || [];
 
-      // Если режим "частичный", показываем не все занятия, а, например, 2
-      const PARTIAL_COUNT = 2;
+      const PARTIAL_COUNT = 2; // сколько максимум показывать в «частичном» режиме
       const displayedSchedule = isPartial
         ? daySchedule.slice(0, PARTIAL_COUNT)
         : daySchedule;
@@ -127,10 +131,6 @@
       dayDiv.className = "day" + (isToday ? " current-day" : "");
       if (clickable) {
         dayDiv.style.cursor = "pointer";
-      }
-
-      // Обработчик клика по дню (если нужно)
-      if (clickable) {
         dayDiv.addEventListener("click", () => {
           selectedDay = dayIndex;
           setView("detail");
@@ -142,7 +142,7 @@
       dayHeader.textContent = dayName;
       dayDiv.appendChild(dayHeader);
 
-      // Проверяем, есть ли занятия
+      // Занятия или «Víkend»
       if (displayedSchedule.length > 0) {
         const lessonList = document.createElement("ul");
         displayedSchedule.forEach((lesson) => {
@@ -178,11 +178,12 @@
             `;
             lessonItem.appendChild(noteDiv);
           }
+
           lessonList.appendChild(lessonItem);
         });
         dayDiv.appendChild(lessonList);
 
-        // Если есть ещё занятия, но мы их не показали (isPartial)
+        // Если есть ещё занятия, которые мы «обрезали»
         if (daySchedule.length > displayedSchedule.length) {
           const partialInfo = document.createElement("div");
           partialInfo.style.marginTop = "10px";
@@ -192,7 +193,7 @@
           dayDiv.appendChild(partialInfo);
         }
       } else {
-        // Если нет занятий – выводим "Víkend"
+        // Если нет занятий — «Víkend»
         const noLessons = document.createElement("p");
         noLessons.textContent = "Víkend";
         dayDiv.appendChild(noLessons);
@@ -201,84 +202,71 @@
       return dayDiv;
     }
 
-    // ----- ОСНОВНАЯ ФУНКЦИЯ РЕНДЕРА (учитывает состояние view / selectedDay) -----
+    // ======= ОСНОВНОЙ РЕНДЕР (учитывая view / selectedDay) =======
     function renderCalendar() {
       const calendarDiv = document.getElementById("calendar");
       const controlButton = document.getElementById("controlButton");
       const backButton = document.getElementById("backButton");
-      calendarDiv.innerHTML = ""; // Очистим контент
 
-      // Скрываем все кнопки перед настройкой
+      // Сброс контента и кнопок
+      calendarDiv.innerHTML = "";
+      calendarDiv.classList.remove("single-day");
       controlButton.style.display = "none";
       backButton.style.display = "none";
 
-      if (view === "detail" && selectedDay != null) {
-        // ----- Режим detail: показываем один выбранный день полностью -----
-        // (isPartial = false, isToday проверяем, но может быть любое)
+      if (view === "detail" && selectedDay !== null) {
+        // ----- Режим DETAIL -----
+        // показываем один день (полностью)
         const isToday = (selectedDay === currentDayIndex);
 
-        // Кнопка "Späť na rozvrh" (возвращаемся в full)
         backButton.style.display = "inline-block";
         backButton.textContent = "Späť na rozvrh";
         backButton.onclick = () => {
-          // Возврат в "full"
+          // Возвращаемся в full
           selectedDay = null;
           setView("full");
         };
 
-        // Рендерим только один день
-        const dayBlock = renderDay(selectedDay, isToday, false, false);
-        // Чтобы внешний вид "single-day" был как в React, можно добавить доп.класс:
         calendarDiv.classList.add("single-day");
+        const dayBlock = renderDay(selectedDay, isToday, false, false);
         calendarDiv.appendChild(dayBlock);
-      }
-      else if (view === "full") {
-        // ----- Режим full: показываем все дни, НО частично (isPartial = true) -----
-        // + кнопка вернуться на "today"
+
+      } else if (view === "full") {
+        // ----- Режим FULL -----
+        // показываем все 6 дней (Пн..Сб) частично, кликабельно
         controlButton.style.display = "inline-block";
         controlButton.textContent = "Vrátiť sa na dnešok";
         controlButton.onclick = () => {
           setView("today");
         };
 
-        // Убедимся, что нет класса single-day
-        calendarDiv.classList.remove("single-day");
-
-        // Рендерим все дни
-        daysOfWeek.forEach((_, index) => {
-          const isToday = (index === currentDayIndex);
-          // clickable = true, чтобы перейти в detail
-          const dayBlock = renderDay(index, isToday, true, true);
+        // Рендерим все дни (0..5)
+        for (let i = 0; i < daysOfWeek.length; i++) {
+          const isToday = (i === currentDayIndex);
+          const dayBlock = renderDay(i, isToday, true, true);
           calendarDiv.appendChild(dayBlock);
-        });
-      }
-      else {
-        // ----- По умолчанию: режим today -----
-        // Показываем занятия только для текущего дня полностью (isPartial = false),
-        // причём по задаче – он не подсвечивается ("isToday = false"),
-        // но если хотите оставить выделение, можно поставить isToday=true.
-        const isToday = false;
+        }
 
-        // Кнопка "Ukázať celé (15s)"
+      } else {
+        // ----- По умолчанию: Режим TODAY -----
+        // показываем только currentDayIndex (полностью), без выделения (если хотите — поставьте isToday=true)
         controlButton.style.display = "inline-block";
         controlButton.textContent = "Ukázať celé (15s)";
         controlButton.onclick = () => {
-          // Переходим в режим full
           setView("full");
         };
 
-        // Убедимся, что нет класса single-day перед перерисовкой
-        calendarDiv.classList.remove("single-day");
-        calendarDiv.classList.add("single-day"); // а потом добавим, как в React
-        const dayBlock = renderDay(currentDayIndex, isToday, false, false);
+        calendarDiv.classList.add("single-day");
+        // Параметр isToday = false (как в React-примере)
+        const dayBlock = renderDay(currentDayIndex, false, false, false);
         calendarDiv.appendChild(dayBlock);
       }
     }
 
-    // ----- СТАРТ ПРИ ЗАГРУЗКЕ СТРАНИЦЫ -----
-    // 1) Загружаем расписание
+    // ======= СТАРТ ПРИ ЗАГРУЗКЕ =======
+    // 1) Первый раз получаем расписание
     fetchSchedule();
-    // 2) Обновляем каждые 6 секунд (как было в исходном ТЗ)
+    // 2) Обновляем каждые 6 секунд
     setInterval(fetchSchedule, 6000);
   </script>
 </body>
