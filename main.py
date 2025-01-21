@@ -1,83 +1,44 @@
+import threading
+import signal
+import sys
+from flask_state import FlaskState
+from mqtt_state import MQTTState
+from config_loader import ConfigLoader
 
-import json
-import time
-import logging
+DEVICE_CONFIG_PATH = "config/device_config.json"
 
-from app_states.idle_state import IdleState
-from app_states.display_schedule import DisplaySchedule
-from app_states.display_notes import DisplayNotes
+class Application:
+    def __init__(self, config_path):
+        self.config_path = config_path
+        self.config = ConfigLoader.load_config(self.config_path)
+        self.stop_event = threading.Event()
 
-from mqtt_client import MqttClient
-from fake_mqtt import FakeMqtt
+    def run_flask(self):
+        flask_state = FlaskState()
+        flask_state.execute()
 
-from display_manager import DisplayManager
+    def run_mqtt(self):
+        mqtt_state = MQTTState(self)
+        mqtt_state.stop_event = self.stop_event  # Передаём общий stop_event
+        mqtt_state.execute()
 
-# Logger setup
-logging.basicConfig(level=logging.INFO, format='[%(asctime)s] %(levelname)s: %(message)s')
+    def stop(self):
+        print("\nStopping application...")
+        self.stop_event.set()  # Устанавливаем флаг остановки
+        sys.exit(0)  # Завершаем программу
 
-def load_configurations():
-    """Load configurations from JSON files."""
-    with open('configurations/device_config.json', 'r', encoding='utf-8') as f:
-        device_config = json.load(f)
-    with open('configurations/user_config.json', 'r', encoding='utf-8') as f:
-        user_config = json.load(f)
-    return device_config, user_config
+    def run(self):
+        flask_thread = threading.Thread(target=self.run_flask, daemon=True)
+        mqtt_thread = threading.Thread(target=self.run_mqtt, daemon=True)
 
-def initialize_mqtt_client(device_config, use_fake=False):
-    """Initialize the MQTT client, real or fake."""
-    if use_fake:
-        mqtt_client = FakeMqtt(device_config["room_id"])
-        mqtt_client.connect()
-        return mqtt_client
-    else:
-        mqtt_client = MqttClient(
-            broker=device_config["mqtt_broker"],
-            port=device_config["mqtt_port"],
-            room_id=device_config["room_id"]
-        )
-        mqtt_client.connect()
-        return mqtt_client
+        flask_thread.start()
+        mqtt_thread.start()
 
-def main():
-    # Load configurations
-    device_config, user_config = load_configurations()
-    logging.info("Configurations successfully loaded.")
+        signal.signal(signal.SIGINT, lambda sig, frame: self.stop())  # Обрабатываем Ctrl+C
 
-    # Initialize MQTT client (real or fake based on config)
-    try:
-        mqtt_client = initialize_mqtt_client(device_config, use_fake=False)
-    except Exception as e:
-        logging.error(f"Failed to initialize real MQTT client: {e}. Switching to fake client.")
-        mqtt_client = initialize_mqtt_client(device_config, use_fake=True)
-
-    # Initialize DisplayManager
-    display_manager = DisplayManager()
-
-    # Initialize application states
-    idle_state = IdleState(display_manager)
-    display_schedule_state = DisplaySchedule(display_manager, mqtt_client)
-    display_notes_state = DisplayNotes(display_manager, mqtt_client)
-
-    # Application state loop
-    current_state = idle_state
-    try:
-        while True:
-            current_state.run()
-            # Example of state switching based on messages
-            if isinstance(mqtt_client, FakeMqtt):
-                mqtt_client.get_message()
-                if mqtt_client.schedule_data:
-                    current_state = display_schedule_state
-                elif mqtt_client.notes_data:
-                    current_state = display_notes_state
-            else:
-                # Replace with real MQTT message handling
-                pass
-            time.sleep(1)
-    except KeyboardInterrupt:
-        logging.info("Application stopped by user.")
-    finally:
-        mqtt_client.stop()
+        flask_thread.join()
+        mqtt_thread.join()
 
 if __name__ == "__main__":
-    main()
+    app = Application(DEVICE_CONFIG_PATH)
+    app.run()

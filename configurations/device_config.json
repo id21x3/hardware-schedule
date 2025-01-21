@@ -1,5 +1,0 @@
-{
-    "mqtt_broker": "localhost",
-    "mqtt_port": 1883,
-    "room_id": "classroom1"
-}

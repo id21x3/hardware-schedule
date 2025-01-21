@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Schedule Display</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <header class="App-header">
+        <h1>L9-B524</h1>
+    </header>
+    <div class="calendar" id="calendar"></div>
+
+    <script>
+        // Массив дней недели
+        const daysOfWeek = [
+            "Pondelok", "Utorok", "Streda", "Štvrtok", "Piatok", "Sobota", "Nedeľa"
+        ];
+
+        /**
+         * Функция для получения расписания с сервера.
+         */
+        async function fetchSchedule() {
+            try {
+                console.log("Fetching schedule...");
+                const response = await fetch('/api/schedule');
+
+                if (!response.ok) {
+                    throw new Error(`HTTP Error: ${response.status}`);
+                }
+
+                const data = await response.json();
+                renderCalendar(data);
+                console.log("Schedule updated successfully.");
+            } catch (error) {
+                console.error("Failed to fetch schedule:", error);
+                displayError("Unable to fetch schedule. Please try again later.");
+            }
+        }
+
+        /**
+         * Функция для отображения ошибки на экране.
+         * @param {string} message - Сообщение об ошибке.
+         */
+        function displayError(message) {
+            const calendarDiv = document.getElementById("calendar");
+            calendarDiv.innerHTML = `<p class="error-message">${message}</p>`;
+        }
+
+        /**
+         * Функция для рендеринга расписания на экране.
+         * @param {Array} weekSchedule - Данные расписания по дням недели.
+         */
+        function renderCalendar(weekSchedule) {
+            const calendarDiv = document.getElementById("calendar");
+            calendarDiv.innerHTML = ""; // Очищаем текущий контент
+
+            const currentDate = new Date();
+            const currentDayIndex = currentDate.getDay() - 1; // Индексация с 0 (понедельник)
+
+            daysOfWeek.forEach((day, index) => {
+                const dayDiv = document.createElement("div");
+                dayDiv.className = `day ${index === currentDayIndex ? "current-day" : ""}`;
+
+                const dayHeader = document.createElement("h2");
+                dayHeader.textContent = day;
+                dayDiv.appendChild(dayHeader);
+
+                if (weekSchedule[index] && weekSchedule[index].length > 0) {
+                    const lessonList = document.createElement("ul");
+                    weekSchedule[index].forEach(lesson => {
+                        const lessonItem = document.createElement("li");
+                        lessonItem.className = "lesson";
+
+                        const lessonDetails = document.createElement("div");
+                        lessonDetails.className = "lesson-details";
+
+                        const timeDiv = document.createElement("div");
+                        timeDiv.className = "lesson-time";
+                        timeDiv.textContent = lesson.time;
+
+                        const nameDiv = document.createElement("div");
+                        nameDiv.className = "lesson-name";
+                        nameDiv.textContent = lesson.lesson;
+
+                        lessonDetails.appendChild(timeDiv);
+                        lessonDetails.appendChild(nameDiv);
+                        lessonItem.appendChild(lessonDetails);
+
+                        const teacherDiv = document.createElement("div");
+                        teacherDiv.className = "lesson-teacher";
+                        teacherDiv.textContent = lesson.teacher;
+                        lessonItem.appendChild(teacherDiv);
+
+                        if (lesson.note) {
+                            const noteDiv = document.createElement("div");
+                            noteDiv.className = "note";
+                            noteDiv.innerHTML = `<img src="/static/icons/bulb.png" alt="Note" class="note-icon" /> <span>${lesson.note}</span>`;
+                            lessonItem.appendChild(noteDiv);
+                        }
+
+                        lessonList.appendChild(lessonItem);
+                    });
+                    dayDiv.appendChild(lessonList);
+                } else {
+                    const noLessons = document.createElement("p");
+                    noLessons.textContent = "Víkend";
+                    dayDiv.appendChild(noLessons);
+                }
+
+                calendarDiv.appendChild(dayDiv);
+            });
+        }
+
+        // Начальное обновление расписания и настройка интервала
+        fetchSchedule(); // Первичный вызов
+        setInterval(fetchSchedule, 6000); // Повтор каждые 6 секунд
+    </script>
+</body>
+</html>
